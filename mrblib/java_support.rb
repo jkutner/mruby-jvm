@@ -22,7 +22,8 @@ class JavaSupport
     native_java_home = find_native_java
     return nil unless native_java_home
     native_java_home.strip!
-    if native_java_home.end_with?("/bin/java")
+    bin_java = File.join("bin", "java")
+    if native_java_home[(0-bin_java.size)..-1] == bin_java
       native_java_home = File.expand_path("../..", native_java_home)
     end
     attempt_java_home(native_java_home)
