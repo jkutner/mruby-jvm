@@ -53,7 +53,7 @@ static struct {
 
 typedef jint (JNICALL CreateJavaVM_t)(JavaVM **pvm, void **env, void *args);
 
-const char**
+static const char**
 process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
 {
   int i;
@@ -65,7 +65,7 @@ process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
 }
 
 #if defined(_WIN32) || defined(_WIN64)
-void
+static void
 disable_folder_virtualization(HANDLE hProcess) {
   OSVERSIONINFO osvi = {0};
   osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
@@ -89,7 +89,7 @@ disable_folder_virtualization(HANDLE hProcess) {
   }
 }
 
-char *
+static char *
 get_string_from_registry(HKEY rootKey, const char *keyName, const char *valueName) {
   HKEY hKey = 0;
   if (RegOpenKeyEx(rootKey, keyName, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
@@ -109,7 +109,7 @@ get_string_from_registry(HKEY rootKey, const char *keyName, const char *valueNam
   return NULL;
 }
 
-char *
+static char *
 get_java_home_from_registry(char *java_key)
 {
   char *version = get_string_from_registry(HKEY_LOCAL_MACHINE, java_key, "CurrentVersion");
@@ -125,7 +125,7 @@ get_java_home_from_registry(char *java_key)
 }
 #endif
 
-mrb_value
+static mrb_value
 mrb_find_native_java(mrb_state *mrb, mrb_value obj)
 {
   char *java_home = NULL;
@@ -152,7 +152,7 @@ mrb_find_native_java(mrb_state *mrb, mrb_value obj)
   return mrb_str_new_cstr(mrb, java_home);
 }
 
-mrb_value
+static mrb_value
 mrb_p_exec(const char **pargv, int pargc)
 {
   int ret, i;
@@ -197,7 +197,7 @@ mrb_p_exec(const char **pargv, int pargc)
 #endif
 }
 
-void
+static void
 launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **ruby_opts, int ruby_optsc)
 {
   int ret, i, pargvc;
@@ -209,7 +209,9 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
   for (i = 0; i < java_optsc; i++) {
     pargv[i+1] = java_opts[i];
   }
-  pargv[java_optsc+1] = java_main_class;
+  if (java_main_class) {
+    pargv[java_optsc+1] = java_main_class;
+  }
   for (i = 0; i < ruby_optsc; i++) {
     pargv[i+java_optsc+2] = ruby_opts[i];
   }
@@ -218,7 +220,7 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
   mrb_p_exec(pargv, pargvc);
 }
 
-void
+static void
 launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *java_main_class, const char **java_opts, int java_optsc, const char **ruby_opts, int ruby_optsc)
 {
   int i;
@@ -277,8 +279,8 @@ launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *jav
   (*jvm)->DestroyJavaVM(jvm);
 }
 
-mrb_value
-mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
+static mrb_value
+mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
 {
   mrb_value *argv;
   mrb_int argc;
@@ -287,7 +289,7 @@ mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
   fflush(stderr);
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc < 3) {
+  if (argc < 6) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
 
@@ -302,6 +304,12 @@ mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
   const int ruby_optsc = argc - ruby_opts_start;
   const char **java_opts = process_mrb_args(mrb, argv, java_opts_start, java_optsc);
   const char **ruby_opts = process_mrb_args(mrb, argv, ruby_opts_start, ruby_optsc);
+
+  if (in_proc != 0) {
+    printf("%s\n", java_exe);
+    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, ruby_opts, ruby_optsc);
+    return mrb_true_value();
+  }
 
   CreateJavaVM_t* createJavaVM = NULL;
 
@@ -352,12 +360,23 @@ mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
   return mrb_true_value();
 }
 
+
+static mrb_value
+mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_launch_jvm(mrb, 0, obj);
+}
+
+static mrb_value
+mrb_java_support_system(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_launch_jvm(mrb, 1, obj);
+}
+
 void
 mrb_init_java_support(mrb_state *mrb)
 {
   struct RClass *java_support;
-
-  mrb_define_method(mrb, mrb->kernel_module, "exec_java",  mrb_java_support_exec, MRB_ARGS_ANY());
 
   java_support = mrb_define_class(mrb, "JavaSupport", mrb->object_class);
   mrb_define_const(mrb, java_support, "JAVA_EXE", mrb_str_new_cstr(mrb, JAVA_EXE));
@@ -366,5 +385,7 @@ mrb_init_java_support(mrb_state *mrb)
   mrb_define_const(mrb, java_support, "JLI_DL", mrb_str_new_cstr(mrb, JLI_DL));
 
   mrb_define_method(mrb, java_support, "find_native_java",  mrb_find_native_java, MRB_ARGS_ANY());
+  mrb_define_method(mrb, java_support, "_exec_java_",  mrb_java_support_exec, MRB_ARGS_ANY());
+  mrb_define_method(mrb, java_support, "_system_java_",  mrb_java_support_system, MRB_ARGS_ANY());
 
 }
