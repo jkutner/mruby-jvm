@@ -272,11 +272,6 @@ launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *jav
   }
 
   (*env)->CallStaticVoidMethod(env, main_class, main_method, main_args);
-
-  if (env && (*env)->ExceptionOccurred(env)) {
-    (*env)->ExceptionDescribe(env);
-  }
-  (*jvm)->DestroyJavaVM(jvm);
 }
 
 static mrb_value
