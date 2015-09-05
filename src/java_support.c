@@ -198,12 +198,12 @@ mrb_p_exec(const char **pargv, int pargc)
 }
 
 static void
-launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **ruby_opts, int ruby_optsc)
+launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
 {
   int ret, i, pargvc;
   void (*chfunc)(int);
 
-  pargvc = java_optsc + ruby_optsc + 3;
+  pargvc = java_optsc + prgm_optsc + 3;
   char **pargv = malloc(pargvc * sizeof(void*));
   pargv[0] = java_exe;
   for (i = 0; i < java_optsc; i++) {
@@ -212,8 +212,8 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
   if (java_main_class) {
     pargv[java_optsc+1] = java_main_class;
   }
-  for (i = 0; i < ruby_optsc; i++) {
-    pargv[i+java_optsc+2] = ruby_opts[i];
+  for (i = 0; i < prgm_optsc; i++) {
+    pargv[i+java_optsc+2] = prgm_opts[i];
   }
   pargv[pargvc-1] = NULL;
 
@@ -221,7 +221,7 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
 }
 
 static void
-launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *java_main_class, const char **java_opts, int java_optsc, const char **ruby_opts, int ruby_optsc)
+launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
 {
   int i;
   JavaVM *jvm;
@@ -261,10 +261,10 @@ launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *jav
   jclass j_class_string = (*env)->FindClass(env, "java/lang/String");
   jstring j_string_arg = (*env)->NewStringUTF(env, "");
 
-  jobjectArray main_args = (*env)->NewObjectArray(env, ruby_optsc, j_class_string, j_string_arg);
+  jobjectArray main_args = (*env)->NewObjectArray(env, prgm_optsc, j_class_string, j_string_arg);
 
-  for (i = 0; i < ruby_optsc; i++) {
-    jstring j_string_arg = (*env)->NewStringUTF(env, (char *) ruby_opts[i]);
+  for (i = 0; i < prgm_optsc; i++) {
+    jstring j_string_arg = (*env)->NewStringUTF(env, (char *) prgm_opts[i]);
     if (!j_string_arg) {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "NewStringUTF() failed");
     }
@@ -295,14 +295,14 @@ mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
   const char *jli_dl = mrb_string_value_cstr(mrb, &argv[java_opts_start++]);
   const char *java_main_class = mrb_string_value_cstr(mrb, &argv[java_opts_start++]);
   const int java_optsc = mrb_fixnum(argv[java_opts_start++]);
-  const int ruby_opts_start = java_opts_start + java_optsc;
-  const int ruby_optsc = argc - ruby_opts_start;
+  const int prgm_opts_start = java_opts_start + java_optsc;
+  const int prgm_optsc = argc - prgm_opts_start;
   const char **java_opts = process_mrb_args(mrb, argv, java_opts_start, java_optsc);
-  const char **ruby_opts = process_mrb_args(mrb, argv, ruby_opts_start, ruby_optsc);
+  const char **prgm_opts = process_mrb_args(mrb, argv, prgm_opts_start, prgm_optsc);
 
   if (in_proc != 0) {
     printf("%s\n", java_exe);
-    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, ruby_opts, ruby_optsc);
+    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
     return mrb_true_value();
   }
 
@@ -338,9 +338,9 @@ mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
 #endif
 
   if (createJavaVM == NULL) {
-    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, ruby_opts, ruby_optsc);
+    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
   } else {
-    launch_jvm_in_proc(mrb, createJavaVM, java_main_class, java_opts, java_optsc, ruby_opts, ruby_optsc);
+    launch_jvm_in_proc(mrb, createJavaVM, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
   }
 
 #if defined(_WIN32) || defined(_WIN64)
