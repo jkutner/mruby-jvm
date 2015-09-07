@@ -10,14 +10,15 @@
 
 #if defined(_WIN32) || defined(_WIN64)
   #include <windows.h>
+  #include <stdio.h>
 #else
-  #include <string.h>
   #include <dlfcn.h>
   #include <stdlib.h>
   #include <unistd.h>
   #include <signal.h> // This is specific to mrb_p_exec
 #endif
 
+#include <string.h>
 #include <jni.h>
 
 // This is specific to mrb_p_exec
@@ -34,6 +35,8 @@ static struct {
   #define JAVA_SERVER_DL "\\bin\\server\\jvm.dll"
   #define JAVA_CLIENT_DL "\\bin\\client\\jvm.dll"
   #define JLI_DL "" // only needed for Apple
+  #define BUFSIZE 4096
+  typedef BOOL (WINAPI *LPFNSDD)(LPCTSTR lpPathname);
 #elif defined(__APPLE__)
   #define JAVA_EXE "java"
   #define JAVA_SERVER_DL "/lib/server/libjvm.dylib"
@@ -221,11 +224,12 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
 }
 
 static void
-launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
+launch_jvm_in_proc(mrb_state *mrb, const char *java_dl, const char *jli_dl, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
 {
   int i;
   JavaVM *jvm;
   JNIEnv *env;
+  CreateJavaVM_t* createJavaVM = NULL;
   JavaVMInitArgs jvm_init_args;
   JavaVMOption jvm_opts[java_optsc];
 
@@ -244,6 +248,21 @@ launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *jav
   jvm_init_args.version = JNI_VERSION_1_4;
   jvm_init_args.ignoreUnrecognized = JNI_FALSE;
 
+#if defined(_WIN32) || defined(_WIN64)
+  //disable_folder_virtualization(GetCurrentProcess());
+  char stupid_var_that_means_nothing_but_makes_windows_work_i_dont_even[MAX_PATH];
+  HMODULE jvmdll = LoadLibrary(java_dl);
+  createJavaVM = (CreateJavaVM_t*) GetProcAddress(jvmdll, "JNI_CreateJavaVM");
+#elif defined(__APPLE__)
+  // jli needs to be loaded on OSX because otherwise the OS tries to run the system Java
+  void *libjli = dlopen(jli_dl, RTLD_NOW + RTLD_GLOBAL);
+  void *libjvm = dlopen(java_dl, RTLD_NOW + RTLD_GLOBAL);
+  createJavaVM = (CreateJavaVM_t*) dlsym(libjvm, "JNI_CreateJavaVM");
+#else
+  void *libjvm = dlopen(java_dl, RTLD_NOW + RTLD_GLOBAL);
+  createJavaVM = (CreateJavaVM_t*) dlsym(libjvm, "JNI_CreateJavaVM");
+#endif
+
   if (createJavaVM(&jvm, (void**)&env, &jvm_init_args) < 0) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "JVM creation failed");
   }
@@ -259,9 +278,7 @@ launch_jvm_in_proc(mrb_state *mrb, CreateJavaVM_t *createJavaVM, const char *jav
   }
 
   jclass j_class_string = (*env)->FindClass(env, "java/lang/String");
-  jstring j_string_arg = (*env)->NewStringUTF(env, "");
-
-  jobjectArray main_args = (*env)->NewObjectArray(env, prgm_optsc, j_class_string, j_string_arg);
+  jobjectArray main_args = (*env)->NewObjectArray(env, prgm_optsc, j_class_string, NULL);
 
   for (i = 0; i < prgm_optsc; i++) {
     jstring j_string_arg = (*env)->NewStringUTF(env, (char *) prgm_opts[i]);
@@ -301,57 +318,10 @@ mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
   const char **prgm_opts = process_mrb_args(mrb, argv, prgm_opts_start, prgm_optsc);
 
   if (in_proc != 0) {
-    printf("%s\n", java_exe);
-    launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
-    return mrb_true_value();
-  }
-
-  CreateJavaVM_t* createJavaVM = NULL;
-
-#if defined(_WIN32) || defined(_WIN64)
-  disable_folder_virtualization(GetCurrentProcess());
-  HMODULE jvmdll = LoadLibrary(java_dl);
-  if (!jvmdll) {
-    mrb_warn(mrb, "Cannot load jvm.dll. Running out of process.");
-    printf("\n");
-  } else {
-    createJavaVM = (CreateJavaVM_t*) GetProcAddress(jvmdll, "JNI_CreateJavaVM");
-  }
-#elif defined(__APPLE__)
-  // jli needs to be loaded on OSX because otherwise the OS tries to run the system Java
-  void *libjli = dlopen(jli_dl, RTLD_NOW + RTLD_GLOBAL);
-  void *libjvm = dlopen(java_dl, RTLD_NOW + RTLD_GLOBAL);
-  if (!libjvm) {
-    mrb_warn(mrb, "Cannot load libjvm.dylib. Running out of process.");
-    printf("\n");
-  } else {
-    createJavaVM = (CreateJavaVM_t*) dlsym(libjvm, "JNI_CreateJavaVM");
-  }
-#else
-  void *libjvm = dlopen(java_dl, RTLD_NOW + RTLD_GLOBAL);
-  if (!libjvm) {
-    mrb_warn(mrb, "Cannot load libjvm.so. Running out of process.");
-    printf("\n");
-  } else {
-    createJavaVM = (CreateJavaVM_t*) dlsym(libjvm, "JNI_CreateJavaVM");
-  }
-#endif
-
-  if (createJavaVM == NULL) {
     launch_jvm_out_of_proc(mrb, java_exe, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
   } else {
-    launch_jvm_in_proc(mrb, createJavaVM, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
+    launch_jvm_in_proc(mrb, java_dl, jli_dl, java_main_class, java_opts, java_optsc, prgm_opts, prgm_optsc);
   }
-
-#if defined(_WIN32) || defined(_WIN64)
-  FreeLibrary(jvmdll);
-#elif defined(__APPLE__)
-  dlclose(libjli);
-  dlclose(libjvm);
-#else
-  dlclose(libjvm);
-#endif
-
   return mrb_true_value();
 }
 

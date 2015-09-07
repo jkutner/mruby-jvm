@@ -104,6 +104,7 @@ MRuby::CrossBuild.new('i686-w64-mingw32') do |conf|
 
   [conf.cc, conf.linker].each do |cc|
     cc.command = 'i686-w64-mingw32-gcc'
+    cc.flags << "-m32"
   end
   conf.cxx.command      = 'i686-w64-mingw32-cpp'
   conf.archiver.command = 'i686-w64-mingw32-gcc-ar'
