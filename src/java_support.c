@@ -21,14 +21,7 @@
 #include <string.h>
 #include <jni.h>
 
-// This is specific to mrb_p_exec
-static struct {
-  const char *name;
-  int no;
-} signals[] = {
-#include "signals.cstub"
-  { NULL, 0 }
-};
+#include "mrb_jvm_process.h"
 
 #if defined(_WIN32) || defined(_WIN64)
   #define JAVA_EXE "java.exe"
@@ -67,161 +60,19 @@ process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
   return opts;
 }
 
-#if defined(_WIN32) || defined(_WIN64)
-static void
-disable_folder_virtualization(HANDLE hProcess) {
-  OSVERSIONINFO osvi = {0};
-  osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
-  if (GetVersionEx(&osvi) && osvi.dwMajorVersion == 6) // check it is Win VISTA
-  {
-    HANDLE hToken;
-    if (OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken)) {
-      DWORD tokenInfoVal = 0;
-      if (!SetTokenInformation(hToken, (TOKEN_INFORMATION_CLASS) 24, &tokenInfoVal, sizeof (DWORD))) {
-        // invalid token information class (24) is OK, it means there is no folder virtualization on current system
-        if (GetLastError() != ERROR_INVALID_PARAMETER) {
-            // logErr(true, true, "Failed to set token information.");
-            return;
-        }
-      }
-      CloseHandle(hToken);
-    } else {
-      // logErr(true, true, "Failed to open process token.");
-      return;
-    }
-  }
-}
 
-static char *
-get_string_from_registry(HKEY rootKey, const char *keyName, const char *valueName) {
-  HKEY hKey = 0;
-  if (RegOpenKeyEx(rootKey, keyName, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-      DWORD valSize = 4096;
-      DWORD type = 0;
-      char val[4096] = "";
-      if (RegQueryValueEx(hKey, valueName, 0, &type, (BYTE *) val, &valSize) == ERROR_SUCCESS && type == REG_SZ) {
-          RegCloseKey(hKey);
-          return val;
-      } else {
-          printf("RegQueryValueEx() failed.\n");
-      }
-      RegCloseKey(hKey);
-  } else {
-      printf("RegOpenKeyEx() failed.\n");
-  }
-  return NULL;
-}
 
-static char *
-get_java_home_from_registry(char *java_key)
-{
-  char *version = get_string_from_registry(HKEY_LOCAL_MACHINE, java_key, "CurrentVersion");
-  if (version) {
-    char *sep = "\\";
-    char *full_java_key = malloc(strlen(java_key)+strlen(sep)+strlen(version)+1);
-    strcpy(full_java_key, java_key);
-    strcat(full_java_key, sep);
-    strcat(full_java_key, version);
-    return get_string_from_registry(HKEY_LOCAL_MACHINE, full_java_key, "JavaHome");
-  }
-  return NULL;
-}
-#endif
 
-static mrb_value
-mrb_find_native_java(mrb_state *mrb, mrb_value obj)
-{
-  char *java_home = NULL;
-  char buff[PATH_MAX];
-#if defined(_WIN32) || defined(_WIN64)
-  java_home = get_java_home_from_registry("Software\\JavaSoft\\Java Development Kit");
-  if (!java_home) {
-    java_home = get_java_home_from_registry("Software\\JavaSoft\\Java Runtime Environment");
-  }
-#elif defined(__APPLE__)
-  FILE *fp = popen("/usr/libexec/java_home", "r");
-  if (fp == NULL) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to run `/usr/libexec/java_home'");
-  }
 
-  // Read only the first line of output
-  java_home = fgets(buff, sizeof(buff)-1, fp);
-  pclose(fp);
-#else
-  ssize_t len = readlink("/usr/bin/java", buff, sizeof(buff)-1);
-  buff[len] = '\0';
-  java_home = buff;
-#endif
-  return mrb_str_new_cstr(mrb, java_home);
-}
 
-static mrb_value
-mrb_p_exec(const char **pargv, int pargc)
-{
-  int ret, i;
 
-  fflush(stdout);
-  fflush(stderr);
-#if defined(_WIN32) || defined(_WIN64)
-  char cmd[32*1024] = "";
-  for (i = 0; i < pargc-1; i++) {
-    strcat(cmd, pargv[i]);
-    strcat(cmd, " ");
-  }
 
-  STARTUPINFO si = {0};
-  si.cb = sizeof(STARTUPINFO);
-  PROCESS_INFORMATION pi = {0};
 
-  if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
-    // mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create process");
-    return mrb_false_value();
-  }
 
-  disable_folder_virtualization(pi.hProcess);
-  ResumeThread(pi.hThread);
-  WaitForSingleObject(pi.hProcess, INFINITE);
 
-  CloseHandle(pi.hProcess);
-  CloseHandle(pi.hThread);
-  return mrb_true_value();
-#else
-  void (*chfunc)(int);
 
-  chfunc = signal(SIGCHLD, SIG_DFL);
-  ret = execv(pargv[0], pargv);
-  signal(SIGCHLD, chfunc);
 
-  if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0) {
-    return mrb_true_value();
-  }
 
-  return mrb_false_value();
-#endif
-}
-
-static void
-launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
-{
-  int ret, i, pargvc;
-  void (*chfunc)(int);
-
-  pargvc = java_optsc + prgm_optsc + 3;
-  char **pargv = malloc(pargvc * sizeof(void*));
-  pargv[0] = java_exe;
-  for (i = 0; i < java_optsc; i++) {
-    pargv[i+1] = java_opts[i];
-  }
-  if (java_main_class) {
-    pargv[java_optsc+1] = java_main_class;
-  }
-  for (i = 0; i < prgm_optsc; i++) {
-    pargv[i+java_optsc+2] = prgm_opts[i];
-  }
-  pargv[pargvc-1] = NULL;
-
-  mrb_p_exec(pargv, pargvc);
-}
 
 static void
 launch_jvm_in_proc(mrb_state *mrb, const char *java_dl, const char *jli_dl, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
