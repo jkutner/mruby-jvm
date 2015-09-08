@@ -15,7 +15,6 @@
   #include <dlfcn.h>
   #include <stdlib.h>
   #include <unistd.h>
-  #include <signal.h> // This is specific to mrb_p_exec
 #endif
 
 #include <string.h>
@@ -28,8 +27,6 @@
   #define JAVA_SERVER_DL "\\bin\\server\\jvm.dll"
   #define JAVA_CLIENT_DL "\\bin\\client\\jvm.dll"
   #define JLI_DL "" // only needed for Apple
-  #define BUFSIZE 4096
-  typedef BOOL (WINAPI *LPFNSDD)(LPCTSTR lpPathname);
 #elif defined(__APPLE__)
   #define JAVA_EXE "java"
   #define JAVA_SERVER_DL "/lib/server/libjvm.dylib"
@@ -49,8 +46,7 @@
 
 typedef jint (JNICALL CreateJavaVM_t)(JavaVM **pvm, void **env, void *args);
 
-static const char**
-process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
+const char** process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
 {
   int i;
   const char **opts = malloc(count * sizeof(void*));;
@@ -60,22 +56,8 @@ process_mrb_args(mrb_state *mrb, mrb_value *argv, int offset, int count)
   return opts;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-launch_jvm_in_proc(mrb_state *mrb, const char *java_dl, const char *jli_dl, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
+void launch_jvm_in_proc(mrb_state *mrb, const char *java_dl, const char *jli_dl, const char *java_main_class,
+			const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
 {
   int i;
   JavaVM *jvm;
@@ -142,8 +124,7 @@ launch_jvm_in_proc(mrb_state *mrb, const char *java_dl, const char *jli_dl, cons
   (*env)->CallStaticVoidMethod(env, main_class, main_method, main_args);
 }
 
-static mrb_value
-mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
+mrb_value mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
 {
   mrb_value *argv;
   mrb_int argc;
@@ -176,21 +157,17 @@ mrb_launch_jvm(mrb_state *mrb, const int in_proc, mrb_value obj)
   return mrb_true_value();
 }
 
-
-static mrb_value
-mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
+mrb_value mrb_java_support_exec(mrb_state *mrb, mrb_value obj)
 {
   return mrb_launch_jvm(mrb, 0, obj);
 }
 
-static mrb_value
-mrb_java_support_system(mrb_state *mrb, mrb_value obj)
+mrb_value mrb_java_support_system(mrb_state *mrb, mrb_value obj)
 {
   return mrb_launch_jvm(mrb, 1, obj);
 }
 
-void
-mrb_init_java_support(mrb_state *mrb)
+void mrb_init_java_support(mrb_state *mrb)
 {
   struct RClass *java_support;
 
@@ -203,5 +180,4 @@ mrb_init_java_support(mrb_state *mrb)
   mrb_define_method(mrb, java_support, "find_native_java",  mrb_find_native_java, MRB_ARGS_ANY());
   mrb_define_method(mrb, java_support, "_exec_java_",  mrb_java_support_exec, MRB_ARGS_ANY());
   mrb_define_method(mrb, java_support, "_system_java_",  mrb_java_support_system, MRB_ARGS_ANY());
-
 }

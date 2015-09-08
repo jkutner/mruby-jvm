@@ -26,15 +26,12 @@ void disable_folder_virtualization(HANDLE hProcess) {
     if (OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken)) {
       DWORD tokenInfoVal = 0;
       if (!SetTokenInformation(hToken, (TOKEN_INFORMATION_CLASS) 24, &tokenInfoVal, sizeof (DWORD))) {
-        // invalid token information class (24) is OK, it means there is no folder virtualization on current system
         if (GetLastError() != ERROR_INVALID_PARAMETER) {
-            // logErr(true, true, "Failed to set token information.");
             return;
         }
       }
       CloseHandle(hToken);
     } else {
-      // logErr(true, true, "Failed to open process token.");
       return;
     }
   }
