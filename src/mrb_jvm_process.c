@@ -93,23 +93,23 @@ mrb_value mrb_process_exec(char *const *pargv, int pargc)
 #endif
 }
 
-void launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class,
-			    const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
+void launch_jvm_out_of_proc(mrb_state *mrb, char *java_exe, char *java_main_class,
+			    char **java_opts, int java_optsc, char **prgm_opts, int prgm_optsc)
 {
   int ret, i, pargvc;
   void (*chfunc)(int);
 
   pargvc = java_optsc + prgm_optsc + 3;
   char **pargv = malloc(pargvc * sizeof(void*));
-  strcpy(pargv[0], java_exe);
+  pargv[0] = java_exe;
   for (i = 0; i < java_optsc; i++) {
-    strcpy(pargv[i+1], java_opts[i]);
+    pargv[i+1] = java_opts[i];
   }
   if (java_main_class) {
-    strcpy(pargv[java_optsc+1], java_main_class);
+    pargv[java_optsc+1] = java_main_class;
   }
   for (i = 0; i < prgm_optsc; i++) {
-    strcpy(pargv[i+java_optsc+2], prgm_opts[i]);
+    pargv[i+java_optsc+2] = prgm_opts[i];
   }
   pargv[pargvc-1] = NULL;
 

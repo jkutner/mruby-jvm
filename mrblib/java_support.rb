@@ -55,7 +55,7 @@ class JavaSupport
 
   def try_jdk_home(path, javacmd=nil)
     exe = exists_or_nil(resolve_java_exe(path))
-    sdl = exists_or_nil(resolve_jdk_server_dl(path))
+    sdl = exists_or_nil(resolve_jdk_server_dl(path)) || exists_or_nil(resolve_jamvm_dl(path))
     cdl = exists_or_nil(resolve_jdk_client_dl(path))
     return nil unless exe and (cdl or sdl)
     [:jdk, javacmd || exe, sdl, cdl, path]
@@ -93,6 +93,10 @@ class JavaSupport
 
   def resolve_jre_client_dl(java_home)
     File.join(java_home, JavaSupport::JAVA_CLIENT_DL)
+  end
+
+  def resolve_jamvm_dl(java_home)
+    File.join(java_home, "lib/jamvm/libjvm.so")
   end
 
   def resolve_jli_dl
