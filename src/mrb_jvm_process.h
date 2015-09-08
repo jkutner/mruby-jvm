@@ -15,13 +15,12 @@
   #include <dlfcn.h>
   #include <stdlib.h>
   #include <unistd.h>
-  #include <signal.h> // This is specific to mrb_p_exec
+  #include <signal.h>
 #endif
 
 #include <string.h>
 #include <jni.h>
 
-// This is specific to mrb_p_exec
 static struct {
   const char *name;
   int no;
@@ -30,11 +29,8 @@ static struct {
   { NULL, 0 }
 };
 
-mrb_value
-mrb_find_native_java(mrb_state *mrb, mrb_value obj);
+mrb_value mrb_find_native_java(mrb_state *mrb, mrb_value obj);
 
-mrb_value
-mrb_p_exec(const char **pargv, int pargc);
+mrb_value mrb_process_exec(const char **pargv, int pargc);
 
-void
-launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc);
+void launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc);

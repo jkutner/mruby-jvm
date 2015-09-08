@@ -3,15 +3,8 @@
 */
 
 #if defined(_WIN32) || defined(_WIN64)
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/string.h"
-#include "mruby/ext/io.h"
-
 #include <windows.h>
 #include <stdio.h>
-
 #include <string.h>
 
 void disable_folder_virtualization(HANDLE hProcess);

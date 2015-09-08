@@ -9,7 +9,6 @@
 #include "mruby/string.h"
 #include "mruby/ext/io.h"
 
-
 #if defined(_WIN32) || defined(_WIN64)
   #include <windows.h>
   #include <stdio.h>
@@ -17,15 +16,13 @@
   #include <dlfcn.h>
   #include <stdlib.h>
   #include <unistd.h>
-  #include <signal.h> // This is specific to mrb_p_exec
+  #include <signal.h>
 #endif
 
 #include <string.h>
 #include "mrb_jvm_windows.h"
 
-
-mrb_value
-mrb_find_native_java(mrb_state *mrb, mrb_value obj)
+mrb_value mrb_find_native_java(mrb_state *mrb, mrb_value obj)
 {
   char *java_home = NULL;
   char buff[PATH_MAX];
@@ -52,8 +49,7 @@ mrb_find_native_java(mrb_state *mrb, mrb_value obj)
 }
 
 
-mrb_value
-mrb_p_exec(const char **pargv, int pargc)
+mrb_value mrb_process_exec(const char **pargv, int pargc)
 {
   int ret, i;
 
@@ -97,8 +93,7 @@ mrb_p_exec(const char **pargv, int pargc)
 #endif
 }
 
-void
-launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
+void launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_main_class, const char **java_opts, int java_optsc, const char **prgm_opts, int prgm_optsc)
 {
   int ret, i, pargvc;
   void (*chfunc)(int);
@@ -117,5 +112,5 @@ launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *java_ma
   }
   pargv[pargvc-1] = NULL;
 
-  mrb_p_exec(pargv, pargvc);
+  mrb_process_exec(pargv, pargvc);
 }
