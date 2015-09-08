@@ -49,7 +49,7 @@ mrb_value mrb_find_native_java(mrb_state *mrb, mrb_value obj)
 }
 
 
-mrb_value mrb_process_exec(const char **pargv, int pargc)
+mrb_value mrb_process_exec(char *const *pargv, int pargc)
 {
   int ret, i;
 
@@ -101,15 +101,15 @@ void launch_jvm_out_of_proc(mrb_state *mrb, const char *java_exe, const char *ja
 
   pargvc = java_optsc + prgm_optsc + 3;
   char **pargv = malloc(pargvc * sizeof(void*));
-  pargv[0] = java_exe;
+  strcpy(pargv[0], java_exe);
   for (i = 0; i < java_optsc; i++) {
-    pargv[i+1] = java_opts[i];
+    strcpy(pargv[i+1], java_opts[i]);
   }
   if (java_main_class) {
-    pargv[java_optsc+1] = java_main_class;
+    strcpy(pargv[java_optsc+1], java_main_class);
   }
   for (i = 0; i < prgm_optsc; i++) {
-    pargv[i+java_optsc+2] = prgm_opts[i];
+    strcpy(pargv[i+java_optsc+2], prgm_opts[i]);
   }
   pargv[pargvc-1] = NULL;
 
