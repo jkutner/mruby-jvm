@@ -135,10 +135,8 @@ class JavaSupport
   end
 
   def system_java(java_opts, main_class=nil, program_opts=[])
-    #resolve_java_dls(java_opts) do |parsed_java_opts, java_dl, jli_dl|
-      all_opts = java_opts + program_opts
-      _system_java_ @java_exe, nil, nil, main_class, java_opts.size, *all_opts
-    #end
+    all_opts = java_opts + program_opts
+    _system_java_ @java_exe, nil, nil, main_class, java_opts.size, *all_opts
   end
 
   def self.cp_delim
