@@ -4,5 +4,19 @@ mruby gem for running JVM processes
 
 ## Usage
 
-* `JavaSupport.exec_java(java_class, java_opts, program_opts)`
-* `JavaSupport.system_java(java_opts, program_opts)`
+* In Process: `JavaSupport.exec_java(java_opts, java_class, program_opts)`
+* Out of Process: `JavaSupport.system_java(java_opts, java_class, program_opts)`
+
+Also generates an `mruby-jvm` executable that is mainly for testing.
+
+## Building
+
+```
+$ docker-compose run compile
+```
+
+## Testing
+
+```
+$ docker-compose run mtest
+```
