@@ -6,12 +6,12 @@ class JavaSupport
   attr_reader :java_server_dl
   attr_reader :java_client_dl
 
-  def self.exec_java(java_class, java_opts, program_opts)
-    new.exec_java(java_class, java_opts, program_opts)
+  def self.exec_java(java_opts, java_class, program_opts)
+    new.exec_java(java_opts, java_class, program_opts)
   end
 
-  def self.system_java(java_opts, main_class=nil, program_opts=[])
-    new.system_java(java_opts, main_class, program_opts)
+  def self.system_java(java_opts, java_class=nil, program_opts=[])
+    new.system_java(java_opts, java_class, program_opts)
   end
 
   def initialize
@@ -127,16 +127,16 @@ class JavaSupport
     yield java_opts.select{|o| !["-client","-server"].include?(o) }, java_dl, resolve_jli_dl
   end
 
-  def exec_java(java_class, java_opts, program_opts)
+  def exec_java(java_opts, java_class, program_opts)
     resolve_java_dls(java_opts) do |parsed_java_opts, java_dl, jli_dl|
       all_opts = parsed_java_opts + program_opts
       _exec_java_ @java_exe, java_dl, jli_dl, java_class, parsed_java_opts.size, *all_opts
     end
   end
 
-  def system_java(java_opts, main_class=nil, program_opts=[])
+  def system_java(java_opts, java_class=nil, program_opts=[])
     all_opts = java_opts + program_opts
-    _system_java_ @java_exe, nil, nil, main_class, java_opts.size, *all_opts
+    _system_java_ @java_exe, nil, nil, java_class, java_opts.size, *all_opts
   end
 
   def self.cp_delim

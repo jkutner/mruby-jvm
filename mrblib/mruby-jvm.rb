@@ -6,5 +6,5 @@ def __main__(argv)
     java_opts << argv.shift
   end
   argv.shift
-  JavaSupport.exec_java(java_class, java_opts, argv)
+  JavaSupport.exec_java(java_opts, java_class, argv)
 end
