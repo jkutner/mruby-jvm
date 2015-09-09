@@ -27,21 +27,25 @@
   #define JAVA_SERVER_DL "\\bin\\server\\jvm.dll"
   #define JAVA_CLIENT_DL "\\bin\\client\\jvm.dll"
   #define JLI_DL "" // only needed for Apple
+  #define CLASSPATH_DELIMITER ";"
 #elif defined(__APPLE__)
   #define JAVA_EXE "java"
   #define JAVA_SERVER_DL "/lib/server/libjvm.dylib"
   #define JAVA_CLIENT_DL "/lib/client/libjvm.dylib"
   #define JLI_DL "/lib/jli/libjli.dylib"
+  #define CLASSPATH_DELIMITER ":"
 #elif defined(__x86_64__)
   #define JAVA_EXE "java"
   #define JAVA_SERVER_DL "/lib/amd64/server/libjvm.so"
   #define JAVA_CLIENT_DL "/lib/amd64/client/libjvm.so"
   #define JLI_DL "" // only needed for Apple
+  #define CLASSPATH_DELIMITER ":"
 #else
   #define JAVA_EXE "java"
   #define JAVA_SERVER_DL "/lib/i386/server/libjvm.so"
   #define JAVA_CLIENT_DL "/lib/i386/client/libjvm.so"
   #define JLI_DL "" // only needed for Apple
+  #define CLASSPATH_DELIMITER ":"
 #endif
 
 typedef jint (JNICALL CreateJavaVM_t)(JavaVM **pvm, void **env, void *args);
@@ -176,6 +180,7 @@ void mrb_init_java_support(mrb_state *mrb)
   mrb_define_const(mrb, java_support, "JAVA_SERVER_DL", mrb_str_new_cstr(mrb, JAVA_SERVER_DL));
   mrb_define_const(mrb, java_support, "JAVA_CLIENT_DL", mrb_str_new_cstr(mrb, JAVA_CLIENT_DL));
   mrb_define_const(mrb, java_support, "JLI_DL", mrb_str_new_cstr(mrb, JLI_DL));
+  mrb_define_const(mrb, java_support, "CLASSPATH_DELIMITER", mrb_str_new_cstr(mrb, CLASSPATH_DELIMITER));
 
   mrb_define_method(mrb, java_support, "find_native_java",  mrb_find_native_java, MRB_ARGS_ANY());
   mrb_define_method(mrb, java_support, "_exec_java_",  mrb_java_support_exec, MRB_ARGS_ANY());
