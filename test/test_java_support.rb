@@ -1,7 +1,7 @@
 class TestJavaSupport < MTest::Unit::TestCase
 
   def host_java_home
-    "/usr/lib/jvm/java-8-openjdk-amd64"
+    "/usr/lib/jvm/java-7-openjdk-amd64"
   end
 
   def test_resolve_jdk_home
@@ -60,11 +60,11 @@ class TestJavaSupport < MTest::Unit::TestCase
     ENV['JAVACMD'] = nil
     ENV['JAVA_HOME'] = nil
     j = JavaSupport.new
-    assert_equal host_java_home, j.java_home
-    assert_equal "#{host_java_home}/bin/java", j.java_exe
+    assert_equal "#{host_java_home}/jre", j.java_home
+    assert_equal "#{host_java_home}/jre/bin/java", j.java_exe
     assert_equal "#{host_java_home}/jre/lib/amd64/server/libjvm.so", j.java_server_dl
     assert_equal nil, j.java_client_dl
-    assert_equal :jdk, j.runtime
+    assert_equal :jre, j.runtime
   ensure
     ENV['JAVA_HOME'] = host_java_home
   end

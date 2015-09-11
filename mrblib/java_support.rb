@@ -70,9 +70,10 @@ class JavaSupport
 
   def try_jre_home(path, javacmd=nil)
     exe = exists_or_nil(resolve_java_exe(path))
+    sdl = exists_or_nil(resolve_jre_server_dl(path))
     cdl = exists_or_nil(resolve_jre_client_dl(path))
-    return nil unless exe and cdl
-    [:jre, javacmd || exe, nil, cdl, path]
+    return nil unless exe and (cdl or sdl)
+    [:jre, javacmd || exe, sdl, cdl, path]
   end
 
   def resolve_java_exe(java_home)
@@ -93,6 +94,10 @@ class JavaSupport
 
   def resolve_jre_client_dl(java_home)
     File.join(java_home, JavaSupport::JAVA_CLIENT_DL)
+  end
+
+  def resolve_jre_server_dl(java_home)
+    File.join(java_home, JavaSupport::JAVA_SERVER_DL)
   end
 
   def resolve_jamvm_dl(java_home)

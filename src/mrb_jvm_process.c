@@ -15,6 +15,8 @@
 #else
   #include <dlfcn.h>
   #include <stdlib.h>
+  #include <sys/types.h>
+  #include <sys/stat.h>
   #include <unistd.h>
   #include <signal.h>
 #endif
@@ -41,8 +43,20 @@ mrb_value mrb_find_native_java(mrb_state *mrb, mrb_value obj)
   java_home = fgets(buff, sizeof(buff)-1, fp);
   pclose(fp);
 #else
+  struct stat buf_stat;
+  int x;
+
   ssize_t len = readlink("/usr/bin/java", buff, sizeof(buff)-1);
   buff[len] = '\0';
+
+  x = lstat (buff, &buf_stat);
+  if (S_ISLNK(buf_stat.st_mode)) { // /etc/alternatives/java
+    char java_link[len];
+    strcpy(java_link, buff);
+    len = readlink(java_link, buff, sizeof(buff)-1);
+    buff[len] = '\0';
+  }
+
   java_home = buff;
 #endif
   return mrb_str_new_cstr(mrb, java_home);
