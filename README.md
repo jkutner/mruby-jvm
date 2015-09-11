@@ -12,6 +12,7 @@ Also generates an `mruby-jvm` executable that is mainly for testing.
 ## Building
 
 ```
+$ docker-compose build
 $ docker-compose run compile
 ```
 
