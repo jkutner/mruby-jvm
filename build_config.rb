@@ -14,6 +14,7 @@ MRuby::Build.new do |conf|
 
   conf.enable_bintest
   conf.enable_debug
+  conf.enable_test
 
   gem_config(conf)
 end
@@ -26,8 +27,6 @@ MRuby::CrossBuild.new('x86_64-pc-linux-gnu') do |conf|
     cc.flags << "-ldl"
   end
 
-  conf.build_mrbtest_lib_only
-
   gem_config(conf)
 end
 
@@ -39,8 +38,6 @@ MRuby::CrossBuild.new('i686-pc-linux-gnu') do |conf|
     cc.flags << "-Wl,--no-as-needed"
     cc.flags << "-ldl"
   end
-
-  conf.build_mrbtest_lib_only
 
   gem_config(conf)
 end
@@ -58,8 +55,6 @@ MRuby::CrossBuild.new('x86_64-apple-darwin14') do |conf|
   conf.build_target     = 'x86_64-pc-linux-gnu'
   conf.host_target      = 'x86_64-apple-darwin14'
 
-  conf.build_mrbtest_lib_only
-
   gem_config(conf)
 end
 
@@ -75,8 +70,6 @@ MRuby::CrossBuild.new('i386-apple-darwin14') do |conf|
 
   conf.build_target     = 'i386-pc-linux-gnu'
   conf.host_target      = 'i386-apple-darwin14'
-
-  conf.build_mrbtest_lib_only
 
   gem_config(conf)
 end
@@ -94,8 +87,6 @@ MRuby::CrossBuild.new('x86_64-w64-mingw32') do |conf|
   conf.build_target     = 'x86_64-pc-linux-gnu'
   conf.host_target      = 'x86_64-w64-mingw32'
 
-  conf.build_mrbtest_lib_only
-
   gem_config(conf)
 end
 
@@ -112,8 +103,6 @@ MRuby::CrossBuild.new('i686-w64-mingw32') do |conf|
 
   conf.build_target     = 'i686-pc-linux-gnu'
   conf.host_target      = 'i686-w64-mingw32'
-
-  conf.build_mrbtest_lib_only
 
   gem_config(conf)
 end

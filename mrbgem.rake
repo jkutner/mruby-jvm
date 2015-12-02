@@ -4,7 +4,7 @@ MRuby::Gem::Specification.new('mruby-jvm') do |spec|
   spec.summary = 'mruby-jvm'
   spec.bins    = ['mruby-jvm']
 
-  #spec.add_dependency 'mruby-mtest', :mgem => 'mruby-mtest'
+  spec.add_test_dependency 'mruby-mtest', :mgem => 'mruby-mtest'
   spec.add_dependency 'mruby-env', :mgem => 'mruby-env'
   spec.add_dependency 'mruby-dir', :mgem => 'mruby-dir'
   spec.add_dependency 'mruby-string-ext', :core => 'mruby-string-ext'
