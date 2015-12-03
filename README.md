@@ -1,4 +1,4 @@
-# mruby-jvm
+# mruby-jvm [![Build Status](https://travis-ci.org/jkutner/mruby-jvm.svg)](https://travis-ci.org/jkutner/mruby-jvm)
 
 mruby gem for running JVM processes
 
