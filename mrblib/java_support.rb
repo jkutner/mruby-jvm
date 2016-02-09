@@ -133,7 +133,8 @@ class JavaSupport
   end
 
   def exec_java(java_opts, java_class, program_opts)
-    resolve_java_dls(java_opts) do |parsed_java_opts, java_dl, jli_dl|
+    cmd_line_prop = "-Dsun.java.command=#{java_class}"
+    resolve_java_dls([cmd_line_prop] + java_opts) do |parsed_java_opts, java_dl, jli_dl|
       all_opts = parsed_java_opts + program_opts
       _exec_java_ @java_exe, java_dl, jli_dl, java_class, parsed_java_opts.size, *all_opts
     end
