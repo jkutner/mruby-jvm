@@ -14,13 +14,17 @@ class JavaSupport
     new.system_java(java_opts, java_class, program_opts)
   end
 
-  def initialize
-    @runtime, @java_exe, @java_server_dl, @java_client_dl, @java_home = resolve_java_home
+  def self.custom_java(java_home, java_opts, java_class=nil, program_opts=[])
+    new(java_home).system_java(java_opts, java_class, program_opts)
   end
 
-  def resolve_java_home
+  def initialize(java_home=nil)
+    @runtime, @java_exe, @java_server_dl, @java_client_dl, @java_home = resolve_java_home(java_home)
+  end
+
+  def resolve_java_home(java_home)
     info = attempt_javacmd(ENV['JAVACMD']) ||
-           attempt_java_home(ENV['JAVA_HOME']) ||
+           attempt_java_home(java_home || ENV['JAVA_HOME']) ||
            resolve_native_java_home
     raise "No JAVA_HOME found." unless info
     info
