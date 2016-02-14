@@ -80,12 +80,12 @@ mrb_value mrb_process_exec(char *const *pargv, int pargc)
   si.cb = sizeof(STARTUPINFO);
   PROCESS_INFORMATION pi = {0};
 
-  if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
+  if (!CreateProcess(NULL, cmd, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi)){
     // mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create process");
     return mrb_false_value();
   }
 
-   disable_folder_virtualization(pi.hProcess);
+  disable_folder_virtualization(pi.hProcess);
   ResumeThread(pi.hThread);
   WaitForSingleObject(pi.hProcess, INFINITE);
 
@@ -119,7 +119,7 @@ void launch_jvm_out_of_proc(mrb_state *mrb, char *java_exe, char *java_main_clas
   for (i = 0; i < java_optsc; i++) {
     pargv[i+1] = java_opts[i];
   }
-  if (java_main_class) {
+  if (java_main_class && (strcmp(java_main_class, "") != 0)) {
     pargv[java_optsc+1] = java_main_class;
   }
   for (i = 0; i < prgm_optsc; i++) {
